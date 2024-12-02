@@ -27,7 +27,9 @@ def main_(flag: bool) -> None:
 
 
 def main() -> None:
+    print(f"The answer for Day 9 Part 1 is: ", end='')
     main_(False)
+    print(f"The answer for Day 9 Part 2 is: ", end='')
     main_(True)
 
 
