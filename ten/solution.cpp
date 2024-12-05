@@ -12,6 +12,7 @@ struct Node {
     Node* south;
     Node* west;
     Node* east;
+    Node* prev;
 
     char c;
     int row;
@@ -19,10 +20,17 @@ struct Node {
     bool seen;
     int type;
     int step;
+    bool pipe;
 };
 
 
 int main() {
+
+    /*
+    
+        Apologies in advance to anyone who will try to read the code below :)
+    
+    */
     
     // Read file into a matrix and find the starting coordinates
     ifstream f("input.txt");
@@ -56,7 +64,7 @@ int main() {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             char c = matrix[i][j];
-            Node* curr = new Node{nullptr, nullptr, nullptr, nullptr, c, i, j, false, 0, 0};
+            Node* curr = new Node{nullptr, nullptr, nullptr, nullptr, nullptr, c, i, j, false, 0, 0, false};
             node_matrix[i][j] = curr;
         }
     }
@@ -168,27 +176,32 @@ int main() {
     // }
 
     Node* starting_node = node_matrix[y][x];
+    starting_node->pipe = true;
     q.push(starting_node);
     if (starting_node->north != nullptr) {
         starting_node->north->type = 1;
+        starting_node->north->prev = starting_node;
         q.push(starting_node->north);
 
     }
 
     if (starting_node->south != nullptr) {
         starting_node->south->type = 2;
+        starting_node->south->prev = starting_node;
         q.push(starting_node->south);
 
     }
 
     if (starting_node->east != nullptr) {
         starting_node->east->type = 3;
+        starting_node->east->prev = starting_node;
         q.push(starting_node->east);
 
     }
 
     if (starting_node->west != nullptr) {
         starting_node->west->type = 4;
+        starting_node->west->prev = starting_node;
         q.push(starting_node->west);
 
     }
@@ -207,9 +220,20 @@ int main() {
             if (curr->north->type != 0 && curr->north->type != curr->type) {
                 found = true;
                 total_steps = curr->step + curr->north->step;
+                Node* curr_ = curr;
+                while (curr_ != starting_node) {
+                    curr_->pipe = true;
+                    curr_ = curr_->prev;
+                }
+                Node* other = curr->north;
+                while (other != starting_node) {
+                    other->pipe = true;
+                    other = other->prev;
+                }
             }
             curr->north->type = curr->type;
             curr->north->step = curr->step + 1;
+            curr->north->prev = curr->north->prev == nullptr ? curr : curr->north->prev;
             q.push(curr->north);
         }
 
@@ -217,9 +241,21 @@ int main() {
             if (curr->south->type != 0 && curr->south->type != curr->type) {
                 found = true;
                 total_steps = curr->step + curr->south->step;
+                Node* curr_ = curr;
+                while (curr_ != starting_node) {
+                    // test
+                    curr_->pipe = true;
+                    curr_ = curr_->prev;
+                }
+                Node* other = curr->south;
+                while (other != starting_node) {
+                    other->pipe = true;
+                    other = other->prev;
+                }
             }
             curr->south->type = curr->type;
             curr->south->step = curr->step + 1;
+            curr->south->prev = curr->south->prev == nullptr ? curr : curr->south->prev;
             q.push(curr->south);
         }
 
@@ -227,9 +263,20 @@ int main() {
             if (curr->east->type != 0 && curr->east->type != curr->type) {
                 found = true;
                 total_steps = curr->step + curr->east->step;
+                Node* curr_ = curr;
+                while (curr_ != starting_node) {
+                    curr_->pipe=true;
+                    curr_ = curr_->prev;
+                }
+                Node* other = curr->east;
+                while (other != starting_node) {
+                    other->pipe = true;
+                    other = other->prev;
+                }
             }
-           curr->east->type = curr->type;
-           curr->east->step = curr->step + 1;
+            curr->east->type = curr->type;
+            curr->east->step = curr->step + 1;
+            curr->east->prev = curr->east->prev == nullptr ? curr : curr->east->prev;
             q.push(curr->east);
         }
 
@@ -237,9 +284,21 @@ int main() {
             if (curr->west->type != 0 && curr->west->type != curr->type) {
                 found = true;
                 total_steps = curr->step + curr->west->step;
+                Node* curr_ = curr;
+                while (curr_ != starting_node) {
+                    curr_->pipe=true;
+                    curr_ = curr_->prev;
+                }
+                Node* other = curr->west;
+                while (other != starting_node) {
+                    other->pipe = true;
+                    other = other->prev;
+                }
             }
-           curr->west->type = curr->type;
-           curr->west->step = curr->step + 1;
+            curr->west->type = curr->type;
+            curr->west->step = curr->step + 1;
+            curr->west->prev = curr->west->prev == nullptr ? curr : curr->west->prev;
+
             q.push(curr->west);
         }
 
@@ -249,8 +308,125 @@ int main() {
     total_steps += 2;
     int total_half = (total_steps + 1) / 2;
 
-    cout << "The answer for Day 9 Part 1 is: " << total_half << endl;
+    cout << "The answer for Day 10 Part 1 is: " << total_half << endl;
 
+
+
+    // ---------------------------- PART 2 ----------------------------
+    
+    int bigrows = (rows * 2) - 1;
+    int bigcols = (cols * 2) - 1;
+    char expanded_grid[bigrows][bigcols];
+    
+    for (int i = 0; i < bigrows; i++) {
+        for (int j = 0; j < bigcols; j++) {
+            if (i % 2 == 0 && j % 2 == 0) {
+                expanded_grid[i][j] = node_matrix[i/2][j/2]->pipe ? node_matrix[i/2][j/2]->c : '.';
+            } else {
+                expanded_grid[i][j] = '?';
+            }
+        }
+    }
+
+
+    // Close gaps
+    for (int i = 0; i < bigrows; i++) {
+        for (int j = 0; j < bigcols; j++) {
+            if (expanded_grid[i][j] == 'L' || expanded_grid[i][j] == 'S') {
+                // Check up
+                if (expanded_grid[i-2][j] == '|' || expanded_grid[i-2][j] == 'F' || expanded_grid[i-2][j] == '7') {
+                    expanded_grid[i-1][j] = '|';
+                }
+                // Check right
+                if (expanded_grid[i][j+2] == '-' || expanded_grid[i][j+2] == 'J' || expanded_grid[i][j+2] == '7') {
+                    expanded_grid[i][j+1] = '-';
+                }
+            }
+
+            if (expanded_grid[i][j] == 'J' || expanded_grid[i][j] == 'S') {
+                // Check up
+                if (expanded_grid[i-2][j] == '|' || expanded_grid[i-2][j] == 'F' || expanded_grid[i-2][j] == '7') {
+                    expanded_grid[i-1][j] = '|';
+                }
+                // Check left
+                if (expanded_grid[i][j-2] == '-' || expanded_grid[i][j-2] == 'F' || expanded_grid[i][j-2] == 'L') {
+                    expanded_grid[i][j-1] = '-';
+                }
+            }
+
+            if (expanded_grid[i][j] == '7' || expanded_grid[i][j] == 'S') {
+                // Check down
+                if (expanded_grid[i+2][j] == '|' || expanded_grid[i+2][j] == 'L' || expanded_grid[i+2][j] == 'J') {
+                    expanded_grid[i+1][j] = '|';
+                }
+                // Check left
+                if (expanded_grid[i][j-2] == '-' || expanded_grid[i][j-2] == 'F' || expanded_grid[i][j-2] == 'L') {
+                    expanded_grid[i][j-1] = '-';
+                }
+            }
+
+            if (expanded_grid[i][j] == 'F' || expanded_grid[i][j] == 'S') {
+                // Check down
+                if (expanded_grid[i+2][j] == '|' || expanded_grid[i+2][j] == 'L' || expanded_grid[i+2][j] == 'J') {
+                    expanded_grid[i+1][j] = '|';
+                }
+                // Check right
+                if (expanded_grid[i][j+2] == '-' || expanded_grid[i][j+2] == 'J' || expanded_grid[i][j+2] == '7') {
+                    expanded_grid[i][j+1] = '-';
+                }
+            }
+
+            if (expanded_grid[i][j] == '|' || expanded_grid[i][j] == 'S') {
+                // Check down
+                if (expanded_grid[i+2][j] == '|' || expanded_grid[i+2][j] == 'L' || expanded_grid[i+2][j] == 'J') {
+                    expanded_grid[i+1][j] = '|';
+                }
+                // Check up
+                if (expanded_grid[i-2][j] == '|' || expanded_grid[i-2][j] == 'F' || expanded_grid[i-2][j] == '7') {
+                    expanded_grid[i-1][j] = '|';
+                }
+            }
+
+            if (expanded_grid[i][j] == '-' || expanded_grid[i][j] == 'S') {
+                // Check right
+                if (expanded_grid[i][j+2] == '-' || expanded_grid[i][j+2] == 'J' || expanded_grid[i][j+2] == '7') {
+                    expanded_grid[i][j+1] = '-';
+                }
+                // Check left
+                if (expanded_grid[i][j-2] == '-' || expanded_grid[i][j-2] == 'F' || expanded_grid[i][j-2] == 'L') {
+                    expanded_grid[i][j-1] = '-';
+                }
+            }
+            
+        }
+    }
+
+    // Look for enclosed
+    int enclosed = 0;
+    for (int i = 0; i < bigrows; i++) {
+        for (int j = 0; j < bigcols; j++) {
+            if (expanded_grid[i][j] == '.') {
+                // Up horizontal
+                if (i < 1 ) { continue; }
+                bool is_enclosed = false;
+                for (int k = 0; k < j; k++) {
+                    if (expanded_grid[i-1][k] == '|') {
+                        is_enclosed = !is_enclosed;
+                    }
+                }
+
+                if (is_enclosed){
+                    enclosed++;
+                }
+            }
+        }
+    }
+
+    cout << "The answer for Day 10 Part 2 is: " << enclosed << endl;
+    // ----------------------------------------------------------------
+
+
+    // Free up memory
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             delete node_matrix[i][j];
